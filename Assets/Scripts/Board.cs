@@ -53,6 +53,10 @@ public class Board : MonoBehaviour {
 				if (selectedBlock != null) {
 					if (_checkAdjoinBlock (selectedBlock, hit.collider.gameObject)) {
 						_swapPositionBlock (selectedBlock, hit.collider.gameObject);
+
+						//_destoryBlocks (_matchingBlocks (selectedBlock));
+						//_destoryBlocks (_matchingBlocks (hit.collider.gameObject));
+
 						selectedBlock = null;
 					} else {
 						selectedBlock = hit.collider.gameObject;
@@ -92,88 +96,92 @@ public class Board : MonoBehaviour {
 		Block block1 = blockObject1.GetComponent<Block> ();
 		Block block2 = blockObject2.GetComponent<Block> ();
 
+		_blocks [block1.row, block1.col] = blockObject2;
+		_blocks [block2.row, block2.col] = blockObject1;
+
 		int tempRow = block1.row;
 		int tempCol = block1.col;
 
 		block1.SetPos (block2.row, block2.col);
 		block2.SetPos (tempRow, tempCol);
 
-		_blocks [block1.row, block1.col] = blockObject2;
-		_blocks [block2.row, block2.col] = blockObject1;
-
-		Vector3 tempPos = blockObject1.transform.localPosition;
-		blockObject1.transform.localPosition = blockObject2.transform.localPosition;
-		blockObject2.transform.localPosition = tempPos;
+		Vector2 block1Pos = blockObject1.transform.localPosition;
+		Vector2 block2Pos = blockObject2.transform.localPosition;
+		block1.Move (block2Pos);
+		block2.Move (block1Pos);
+		//Vector3 tempPos = blockObject1.transform.localPosition;
+		//blockObject1.transform.localPosition = blockObject2.transform.localPosition;
+		//blockObject2.transform.localPosition = tempPos;
 	}
 
-	private void _matchingBlock(){
-		List<GameObject> matchingBlocks = new List<GameObject> ();
-		List<GameObject> removeBlocks = new List<GameObject> ();
+	private List<GameObject> _matchingBlocks(GameObject targetObject){
+		Block targetBlock = targetObject.GetComponent<Block> ();
 
-		Block.Kind prevKind = Block.Kind.MAX;
+		int targetRow = targetBlock.row;
+		int targetCol = targetBlock.col;
+		Block.Kind targetKind = targetBlock.kind;
+
+		int startRow = targetRow - 2 < 0 ? 0 : targetRow - 2;
+		int endRow = targetRow + 3 > maxRow ? maxRow : targetRow + 3;
+		int startCol = targetCol - 2 < 0 ? 0 : targetCol - 2;
+		int endCol = targetCol + 3 > maxCol ? maxCol : targetCol + 3;
+
+		List<GameObject> matchingBlocks = new List<GameObject>();
+		List<GameObject> matchedBlocks = new List<GameObject> ();
+
+		//Vertical
 		Block.Kind currKind = Block.Kind.MAX;
+		for (int row = startRow; row < endRow; ++row) {
+			GameObject blockObject = _blocks [row, targetCol];
+			Block block = blockObject.GetComponent<Block> ();
+			currKind = block.kind;
 
-		for (int row = 0; row < maxRow; ++row) {
-			prevKind = Block.Kind.MAX;
-			currKind = Block.Kind.MAX;
-
-			if (matchingBlocks.Count >= 3) {
-				removeBlocks.AddRange (matchingBlocks);
-			}
-			matchingBlocks.Clear ();
-
-			for (int col = 0; col < maxCol; ++col) {
-				GameObject blockObject = _blocks [row, col];
-				Block block = GetComponent<Block> ();
-				currKind = block.kind;
-
-				if (prevKind != currKind) {
-					if (matchingBlocks.Count >= 3) {
-						removeBlocks.AddRange (matchingBlocks);
-					}
-					matchingBlocks.Clear ();
-				}
+			if (currKind == targetKind) {
 				matchingBlocks.Add (blockObject);
-				prevKind = currKind;
+			} else {
+				// case : OOOXX, OOOOX, XOOOX
+				if (matchingBlocks.Count >= 3) {
+					break;
+				}
+				matchingBlocks.Clear ();
+			}
+		}
+		// no case : XXXOO, XXXXO
+		if (matchingBlocks.Count >= 3) {
+			matchedBlocks.AddRange (matchingBlocks);
+		}
+		matchingBlocks.Clear ();
+
+		//Horizontal
+		currKind = Block.Kind.MAX;
+		for (int col = startCol; col < endCol; ++col) {
+			GameObject blockObject = _blocks [targetRow, col];
+			Block block = blockObject.GetComponent<Block> ();
+			currKind = block.kind;
+
+			if (currKind == targetKind) {
+				matchingBlocks.Add (blockObject);
+			} else {
+				if (matchingBlocks.Count >= 3) {
+					break;
+				}
+				matchingBlocks.Clear ();
 			}
 		}
 
 		if (matchingBlocks.Count >= 3) {
-			removeBlocks.AddRange (matchingBlocks);
+			matchedBlocks.AddRange (matchingBlocks);
 		}
 		matchingBlocks.Clear ();
 
-		for (int col = 0; col < maxCol; ++col) {
-			prevKind = Block.Kind.MAX;
-			currKind = Block.Kind.MAX;
+		return matchedBlocks;
+	}
 
-			if (matchingBlocks.Count >= 3) {
-				foreach (GameObject matchingBlock in matchingBlocks) {
-					if (!removeBlocks.Contains (matchingBlock)) {
-						removeBlocks.Add (matchingBlock);
-					}
-				}
-			}
-			matchingBlocks.Clear ();
-
-			for (int row = 0; row < maxRow; ++row) {
-				GameObject blockObject = _blocks [row, col];
-				Block block = GetComponent<Block> ();
-				currKind = block.kind;
-
-				if (prevKind != currKind) {
-					if (matchingBlocks.Count >= 3) {
-						foreach (GameObject matchingBlock in matchingBlocks) {
-							if (!removeBlocks.Contains (matchingBlock)) {
-								removeBlocks.Add (matchingBlock);
-							}
-						}
-					}
-					matchingBlocks.Clear ();
-				}
-				matchingBlocks.Add (blockObject);
-				prevKind = currKind;
-			}
+	private void _destoryBlocks(List<GameObject> targetBlocks) {
+		foreach (GameObject blockObject in targetBlocks) {
+			Block block = blockObject.GetComponent<Block> ();
+			_blocks [block.row, block.col] = null;
+			Destroy (blockObject);
 		}
 	}
 }
