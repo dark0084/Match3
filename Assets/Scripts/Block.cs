@@ -16,12 +16,12 @@ public class Block : MonoBehaviour {
 
 	public Kind kind = Kind.RED;
 
-	public int row = -1;
 	public int col = -1;
+	public int row = -1;
 
-	public void SetPos(int row, int col) {
-		this.row = row;
+	public void SetPos(int col, int row) {
 		this.col = col;
+		this.row = row;
 	}
 
 	public void Move(Vector2 destPos) {
@@ -35,7 +35,7 @@ public class Block : MonoBehaviour {
 		float t = 0.0f;
 
 		while (t < 1.0f) {
-			t += Time.deltaTime;
+			t += 5.0f * Time.deltaTime;
 			if (t >= 1.0f) {
 				t = 1.0f;
 			}

@@ -4,42 +4,44 @@ using System.Collections.Generic;
 
 public class Board : MonoBehaviour {
 	private GameObject[,] _blocks = null;
-	private GameObject selectedBlock = null;
+	private GameObject _selectedBlock = null;
 
 	public GameObject blockPrefab = null;
-	public int maxRow = 8;
 	public int maxCol = 8;
+	public int maxRow = 8;
 
 	public Color[] blockColors;
+
+	private Vector2 _blockSize = new Vector2(0.0f, 0.0f);
 
 	void Start () {
 		SpriteRenderer psr = blockPrefab.GetComponent<SpriteRenderer> ();
 		Vector2 spriteSize = psr.sprite.rect.size;
 		float pixelToUnit = psr.sprite.pixelsPerUnit;
-		Vector2 worldSpriteSize = spriteSize / pixelToUnit;
+		_blockSize = spriteSize / pixelToUnit;
 
-		float boardWidth = worldSpriteSize.x * maxCol;
-		float boardHeight = worldSpriteSize.y * maxRow;
+		float boardWidth = _blockSize.x * maxCol;
+		float boardHeight = _blockSize.y * maxRow;
 
-		transform.position = new Vector2((-boardWidth + worldSpriteSize.x) * 0.5f, (boardHeight - worldSpriteSize.y) * 0.5f);
+		transform.position = new Vector2((-boardWidth + _blockSize.x) * 0.5f, (boardHeight - _blockSize.y) * 0.5f);
 
-		_blocks = new GameObject[maxRow, maxCol];
+		_blocks = new GameObject[maxCol, maxRow];
 
-		for (int row = 0; row < maxRow; ++row) {
-			for (int col = 0; col < maxCol; ++col) {
+		for (int col = 0; col < maxCol; ++col) {
+			for (int row = 0; row < maxRow; ++row) {
 				GameObject go = Instantiate (blockPrefab);
 				go.transform.parent = transform;
-				go.transform.localPosition = new Vector2(worldSpriteSize.x * col, -worldSpriteSize.y * row);
+				go.transform.localPosition = new Vector2(_blockSize.x * col, -_blockSize.y * row);
 
 				int kind = Random.Range(0, (int) Block.Kind.MAX);
 				Block block = go.GetComponent<Block>();
 				block.kind = (Block.Kind) kind;
-				block.SetPos (row, col);
+				block.SetPos (col, row);
 
 				SpriteRenderer sr = go.GetComponent<SpriteRenderer>();
 				sr.color = blockColors[kind];
 
-				_blocks[row, col] = go;
+				_blocks[col, row] = go;
 			}
 		}
 	}
@@ -50,22 +52,19 @@ public class Board : MonoBehaviour {
 			RaycastHit2D hit = Physics2D.Raycast (pos, Vector2.zero, 0f);
 
 			if (hit.collider != null) {
-				if (selectedBlock != null) {
-					if (_checkAdjoinBlock (selectedBlock, hit.collider.gameObject)) {
-						_swapPositionBlock (selectedBlock, hit.collider.gameObject);
-
-						//_destoryBlocks (_matchingBlocks (selectedBlock));
-						//_destoryBlocks (_matchingBlocks (hit.collider.gameObject));
-
-						selectedBlock = null;
+				if (_selectedBlock != null) {
+					if (_checkAdjoinBlock (_selectedBlock, hit.collider.gameObject)) {
+						StartCoroutine(_swapCoroutine(_selectedBlock, hit.collider.gameObject));
+						_selectedBlock = null;
 					} else {
-						selectedBlock = hit.collider.gameObject;
+						_selectedBlock = hit.collider.gameObject;
 					}
 				} else {
-					selectedBlock = hit.collider.gameObject;
+					_selectedBlock = hit.collider.gameObject;
 				}
 			}
 		}
+
 	}
 
 	private bool _checkAdjoinBlock(GameObject blockObject1, GameObject blockObject2) {
@@ -73,66 +72,129 @@ public class Board : MonoBehaviour {
 		Block block2 = blockObject2.GetComponent<Block> ();
 
 		//Up
-		if (block1.row - 1 == block2.row && block1.col == block2.col) {
+		if (block1.col == block2.col && block1.row - 1 == block2.row) {
 			return true;
 		}
 		//Down
-		else if (block1.row + 1 == block2.row && block1.col == block2.col) {
+		else if (block1.col == block2.col && block1.row + 1 == block2.row) {
 			return true;
 		}
 		//Left
-		else if (block1.row == block2.row && block1.col - 1 == block2.col) {
+		else if (block1.col - 1 == block2.col && block1.row == block2.row) {
 			return true;
 		}
 		//Right
-		else if (block1.row == block2.row && block1.col + 1 == block2.col) {
+		else if (block1.col + 1 == block2.col && block1.row == block2.row) {
 			return true;
 		}
 
 		return false;
 	}
 
-	private void _swapPositionBlock(GameObject blockObject1, GameObject blockObject2) {
+	private void _swapBlockPosition(GameObject blockObject1, GameObject blockObject2) {
 		Block block1 = blockObject1.GetComponent<Block> ();
 		Block block2 = blockObject2.GetComponent<Block> ();
 
-		_blocks [block1.row, block1.col] = blockObject2;
-		_blocks [block2.row, block2.col] = blockObject1;
+		_blocks [block1.col, block1.row] = blockObject2;
+		_blocks [block2.col, block2.row] = blockObject1;
 
-		int tempRow = block1.row;
 		int tempCol = block1.col;
+		int tempRow = block1.row;
 
-		block1.SetPos (block2.row, block2.col);
-		block2.SetPos (tempRow, tempCol);
+		block1.SetPos (block2.col, block2.row);
+		block2.SetPos (tempCol, tempRow);
+	}
 
+	private IEnumerator _swapCoroutine(GameObject blockObject1, GameObject blockObject2) {
+		//Swap Ani Start
 		Vector2 block1Pos = blockObject1.transform.localPosition;
 		Vector2 block2Pos = blockObject2.transform.localPosition;
-		block1.Move (block2Pos);
-		block2.Move (block1Pos);
-		//Vector3 tempPos = blockObject1.transform.localPosition;
-		//blockObject1.transform.localPosition = blockObject2.transform.localPosition;
-		//blockObject2.transform.localPosition = tempPos;
+
+		float t = 0.0f;
+		while (t < 1.0f) {
+			t += 5.0f * Time.deltaTime;
+			if (t > 1.0f) {
+				t = 1.0f;
+			}
+			blockObject1.transform.localPosition = Vector2.Lerp (block1Pos, block2Pos, t);
+			blockObject2.transform.localPosition = Vector2.Lerp (block2Pos, block1Pos, t);
+
+			yield return null;
+		}
+
+		_swapBlockPosition (blockObject1, blockObject2);
+
+		List<GameObject> matchedBlocks1 = _matchingBlocks (blockObject1);
+		List<GameObject> matchedBlocks2 = _matchingBlocks (blockObject2);
+
+		if (matchedBlocks1.Count == 0 && matchedBlocks2.Count == 0) {
+			t = 0.0f;
+			while (t < 1.0f) {
+				t += 5.0f * Time.deltaTime;
+				if (t > 1.0f) {
+					t = 1.0f;
+				}
+				blockObject1.transform.localPosition = Vector2.Lerp (block2Pos, block1Pos, t);
+				blockObject2.transform.localPosition = Vector2.Lerp (block1Pos, block2Pos, t);
+
+				yield return null;
+			}
+			_swapBlockPosition (blockObject1, blockObject2);
+			yield break;
+		}
+
+		_destoryBlocks (matchedBlocks1);
+		_destoryBlocks (matchedBlocks2);
+		_fallBlocks ();
 	}
 
 	private List<GameObject> _matchingBlocks(GameObject targetObject){
 		Block targetBlock = targetObject.GetComponent<Block> ();
 
-		int targetRow = targetBlock.row;
 		int targetCol = targetBlock.col;
+		int targetRow = targetBlock.row;
 		Block.Kind targetKind = targetBlock.kind;
 
-		int startRow = targetRow - 2 < 0 ? 0 : targetRow - 2;
-		int endRow = targetRow + 3 > maxRow ? maxRow : targetRow + 3;
 		int startCol = targetCol - 2 < 0 ? 0 : targetCol - 2;
 		int endCol = targetCol + 3 > maxCol ? maxCol : targetCol + 3;
+		int startRow = targetRow - 2 < 0 ? 0 : targetRow - 2;
+		int endRow = targetRow + 3 > maxRow ? maxRow : targetRow + 3;
 
 		List<GameObject> matchingBlocks = new List<GameObject>();
 		List<GameObject> matchedBlocks = new List<GameObject> ();
 
-		//Vertical
+		//Horizontal
 		Block.Kind currKind = Block.Kind.MAX;
+		for (int col = startCol; col < endCol; ++col) {
+			GameObject blockObject = _blocks [col, targetRow];
+			if (blockObject == null) {
+				continue;
+			}
+			Block block = blockObject.GetComponent<Block> ();
+			currKind = block.kind;
+
+			if (currKind == targetKind) {
+				matchingBlocks.Add (blockObject);
+			} else {
+				if (matchingBlocks.Count >= 3) {
+					break;
+				}
+				matchingBlocks.Clear ();
+			}
+		}
+
+		if (matchingBlocks.Count >= 3) {
+			matchedBlocks.AddRange (matchingBlocks);
+		}
+		matchingBlocks.Clear ();
+
+		//Vertical
+		currKind = Block.Kind.MAX;
 		for (int row = startRow; row < endRow; ++row) {
-			GameObject blockObject = _blocks [row, targetCol];
+			GameObject blockObject = _blocks [targetCol, row];
+			if (blockObject == null) {
+				continue;
+			}
 			Block block = blockObject.GetComponent<Block> ();
 			currKind = block.kind;
 
@@ -152,27 +214,6 @@ public class Board : MonoBehaviour {
 		}
 		matchingBlocks.Clear ();
 
-		//Horizontal
-		currKind = Block.Kind.MAX;
-		for (int col = startCol; col < endCol; ++col) {
-			GameObject blockObject = _blocks [targetRow, col];
-			Block block = blockObject.GetComponent<Block> ();
-			currKind = block.kind;
-
-			if (currKind == targetKind) {
-				matchingBlocks.Add (blockObject);
-			} else {
-				if (matchingBlocks.Count >= 3) {
-					break;
-				}
-				matchingBlocks.Clear ();
-			}
-		}
-
-		if (matchingBlocks.Count >= 3) {
-			matchedBlocks.AddRange (matchingBlocks);
-		}
-		matchingBlocks.Clear ();
 
 		return matchedBlocks;
 	}
@@ -180,8 +221,49 @@ public class Board : MonoBehaviour {
 	private void _destoryBlocks(List<GameObject> targetBlocks) {
 		foreach (GameObject blockObject in targetBlocks) {
 			Block block = blockObject.GetComponent<Block> ();
-			_blocks [block.row, block.col] = null;
+			_blocks [block.col, block.row] = null;
 			Destroy (blockObject);
+		}
+	}
+
+	private Vector2 _getBlockPos(int col, int row) {
+		return new Vector2 (_blockSize.x * col, -_blockSize.y * row);
+	}
+
+	private void _fallBlocks()
+	{
+		for (int col = 0; col < maxCol; ++col) {
+			int blankCount = 0;
+			for (int row = maxRow - 1; row >= 0; --row) {
+				if (_blocks [col, row] == null) {
+					++blankCount;
+				} else {
+					if (blankCount > 0) {
+						Block aboveBlock = _blocks [col, row].GetComponent<Block> ();
+						aboveBlock.Move (_getBlockPos (col, row + blankCount));
+						_blocks [col, row + blankCount] = _blocks [col, row];
+						aboveBlock.SetPos (col, row + blankCount);
+						_blocks [col, row] = null;
+					}
+				}
+			}
+
+			for (int i = 0; i < blankCount; ++i) {
+				GameObject go = Instantiate (blockPrefab);
+				go.transform.parent = transform;
+				go.transform.localPosition = _getBlockPos(col, -(i + 1));
+
+				int kind = Random.Range(0, (int) Block.Kind.MAX);
+				Block block = go.GetComponent<Block>();
+				block.kind = (Block.Kind) kind;
+				block.SetPos (col, blankCount - (i + 1));
+
+				SpriteRenderer sr = go.GetComponent<SpriteRenderer>();
+				sr.color = blockColors[kind];
+
+				_blocks[col, blankCount - (i + 1)] = go;
+				block.Move (_getBlockPos(col, blankCount - (i + 1)));
+			}
 		}
 	}
 }
