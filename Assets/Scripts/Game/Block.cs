@@ -18,17 +18,18 @@ public class Block : MonoBehaviour {
 
 	public int col = -1;
 	public int row = -1;
+	public Board board = null;
 
 	public void SetPos(int col, int row) {
 		this.col = col;
 		this.row = row;
 	}
 
-	public void Move(Vector2 destPos) {
-		StartCoroutine (_moveCoroutine (destPos));
+	public void Fall(Vector2 destPos) {
+		StartCoroutine (_fallCoroutine (destPos));
 	}
 
-	private IEnumerator _moveCoroutine(Vector2 destPos) {
+	private IEnumerator _fallCoroutine(Vector2 destPos) {
 		Vector2 startPos = transform.localPosition;
 		Vector2 endPos = destPos;
 
@@ -43,5 +44,7 @@ public class Block : MonoBehaviour {
 
 			yield return null;
 		}
+
+		board.MatchingBlock (gameObject);
 	}
 }

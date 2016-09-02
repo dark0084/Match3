@@ -5,8 +5,10 @@ using System.Collections.Generic;
 public class Board : MonoBehaviour {
 	private GameObject[,] _blocks = null;
 	private GameObject _selectedBlock = null;
+	private LimitTimer _limitTimer = null;
 
 	public GameObject blockPrefab = null;
+	public Progressbar progressbarObject = null;
 	public int maxCol = 8;
 	public int maxRow = 8;
 
@@ -29,21 +31,16 @@ public class Board : MonoBehaviour {
 
 		for (int col = 0; col < maxCol; ++col) {
 			for (int row = 0; row < maxRow; ++row) {
-				GameObject go = Instantiate (blockPrefab);
-				go.transform.parent = transform;
-				go.transform.localPosition = new Vector2(_blockSize.x * col, -_blockSize.y * row);
+				Block block = _createBlock (_getBlockPos (col, row), col, row);
+				_blocks [col, row] = block.gameObject;
 
-				int kind = Random.Range(0, (int) Block.Kind.MAX);
-				Block block = go.GetComponent<Block>();
-				block.kind = (Block.Kind) kind;
-				block.SetPos (col, row);
-
-				SpriteRenderer sr = go.GetComponent<SpriteRenderer>();
-				sr.color = blockColors[kind];
-
-				_blocks[col, row] = go;
+				while (_matchingBlocks (block.gameObject).Count > 0) {
+					_setRandomBlockColor (block);
+				}
 			}
 		}
+		_limitTimer = new LimitTimer ();
+		_limitTimer.SetLimitSec (60.0f); //60Seconds
 	}
 	
 	void Update () {
@@ -64,7 +61,40 @@ public class Board : MonoBehaviour {
 				}
 			}
 		}
+		_limitTimer.UpdateSec (Time.deltaTime);
+		if (progressbarObject != null) {
+			progressbarObject.SetProgress (1.0f - _limitTimer.Ratio);
+		}
+	}
 
+	public void MatchingBlock(GameObject blockObject){
+		List<GameObject> matchedList = _matchingBlocks (blockObject);
+		if (matchedList.Count > 0) {
+			_destoryBlocks (matchedList);
+			_fallBlocks ();
+		}
+	}
+
+	private Block _createBlock(Vector2 pos, int col, int row) {
+		GameObject go = Instantiate (blockPrefab);
+		go.transform.parent = transform;
+		go.transform.localPosition = pos;
+
+		Block block = go.GetComponent<Block>();
+		block.SetPos (col, row);
+		block.board = this;
+
+		_setRandomBlockColor (block);
+
+		return block;
+	}
+
+	private void _setRandomBlockColor(Block block) {
+		int kind = Random.Range(0, (int) Block.Kind.MAX);
+		block.kind = (Block.Kind) kind;
+
+		SpriteRenderer sr = block.gameObject.GetComponent<SpriteRenderer>();
+		sr.color = blockColors[kind];
 	}
 
 	private bool _checkAdjoinBlock(GameObject blockObject1, GameObject blockObject2) {
@@ -106,9 +136,12 @@ public class Board : MonoBehaviour {
 	}
 
 	private IEnumerator _swapCoroutine(GameObject blockObject1, GameObject blockObject2) {
+		Block block1 = blockObject1.GetComponent<Block> ();
+		Block block2 = blockObject2.GetComponent<Block> ();
+
 		//Swap Ani Start
-		Vector2 block1Pos = blockObject1.transform.localPosition;
-		Vector2 block2Pos = blockObject2.transform.localPosition;
+		Vector2 block1Pos = _getBlockPos(block1.col, block1.row);
+		Vector2 block2Pos = _getBlockPos(block2.col, block2.row);
 
 		float t = 0.0f;
 		while (t < 1.0f) {
@@ -240,7 +273,7 @@ public class Board : MonoBehaviour {
 				} else {
 					if (blankCount > 0) {
 						Block aboveBlock = _blocks [col, row].GetComponent<Block> ();
-						aboveBlock.Move (_getBlockPos (col, row + blankCount));
+						aboveBlock.Fall (_getBlockPos (col, row + blankCount));
 						_blocks [col, row + blankCount] = _blocks [col, row];
 						aboveBlock.SetPos (col, row + blankCount);
 						_blocks [col, row] = null;
@@ -249,20 +282,10 @@ public class Board : MonoBehaviour {
 			}
 
 			for (int i = 0; i < blankCount; ++i) {
-				GameObject go = Instantiate (blockPrefab);
-				go.transform.parent = transform;
-				go.transform.localPosition = _getBlockPos(col, -(i + 1));
-
-				int kind = Random.Range(0, (int) Block.Kind.MAX);
-				Block block = go.GetComponent<Block>();
-				block.kind = (Block.Kind) kind;
-				block.SetPos (col, blankCount - (i + 1));
-
-				SpriteRenderer sr = go.GetComponent<SpriteRenderer>();
-				sr.color = blockColors[kind];
-
-				_blocks[col, blankCount - (i + 1)] = go;
-				block.Move (_getBlockPos(col, blankCount - (i + 1)));
+				int fallRow = blankCount - (i + 1);
+				Block block = _createBlock (_getBlockPos (col, -(i + 1)), col, fallRow);
+				_blocks[col, blankCount - (i + 1)] = block.gameObject;
+				block.Fall (_getBlockPos(col, blankCount - (i + 1)));
 			}
 		}
 	}
