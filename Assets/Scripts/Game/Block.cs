@@ -14,7 +14,14 @@ public class Block : MonoBehaviour {
 		MAX
 	}
 
+    public enum State {
+        NORMAL,
+        DISAPPEAR,
+        FALL
+    }
+
 	public Kind kind = Kind.RED;
+    public State state = State.NORMAL;
 
 	public int col = -1;
 	public int row = -1;
@@ -33,6 +40,8 @@ public class Block : MonoBehaviour {
 		Vector2 startPos = transform.localPosition;
 		Vector2 endPos = destPos;
 
+        state = State.FALL;
+
 		float t = 0.0f;
 
 		while (t < 1.0f) {
@@ -45,6 +54,35 @@ public class Block : MonoBehaviour {
 			yield return null;
 		}
 
+        state = State.NORMAL;
 		board.MatchingBlock (gameObject);
 	}
+
+    public void Disappear() {
+        StartCoroutine(_disappearCoroutine());
+    }
+
+    private IEnumerator _disappearCoroutine() {
+        Vector3 startScale = transform.localScale;
+        Vector3 endScale = new Vector3();
+
+        state = State.DISAPPEAR;
+
+        float t = 0.0f;
+        while (t < 1.0f)
+        {
+            t += 2.0f * Time.deltaTime;
+            if (t >= 1.0f)
+            {
+                t = 1.0f;
+            }
+            transform.localScale = Vector3.Lerp(startScale, endScale, t);
+
+            yield return null;
+        }
+
+        state = State.NORMAL;
+
+        board.DestoryBlock(this);
+    }
 }

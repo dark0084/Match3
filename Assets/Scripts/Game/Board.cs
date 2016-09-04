@@ -69,11 +69,14 @@ public class Board : MonoBehaviour {
 
 	public void MatchingBlock(GameObject blockObject){
 		List<GameObject> matchedList = _matchingBlocks (blockObject);
-		if (matchedList.Count > 0) {
-			_destoryBlocks (matchedList);
-			_fallBlocks ();
-		}
+		_disappearBlocks (matchedList);
 	}
+
+    public void DestoryBlock(Block block) {
+        _blocks[block.col, block.row] = null;
+        Destroy(block.gameObject);
+        _fallBlocks(block.col);
+    }
 
 	private Block _createBlock(Vector2 pos, int col, int row) {
 		GameObject go = Instantiate (blockPrefab);
@@ -176,9 +179,8 @@ public class Board : MonoBehaviour {
 			yield break;
 		}
 
-		_destoryBlocks (matchedBlocks1);
-		_destoryBlocks (matchedBlocks2);
-		_fallBlocks ();
+        _disappearBlocks (matchedBlocks1);
+        _disappearBlocks (matchedBlocks2);
 	}
 
 	private List<GameObject> _matchingBlocks(GameObject targetObject){
@@ -204,7 +206,10 @@ public class Board : MonoBehaviour {
 				continue;
 			}
 			Block block = blockObject.GetComponent<Block> ();
-			currKind = block.kind;
+            if (block.state != Block.State.NORMAL) {
+                continue;
+            }
+            currKind = block.kind;
 
 			if (currKind == targetKind) {
 				matchingBlocks.Add (blockObject);
@@ -229,7 +234,11 @@ public class Board : MonoBehaviour {
 				continue;
 			}
 			Block block = blockObject.GetComponent<Block> ();
-			currKind = block.kind;
+            if (block.state != Block.State.NORMAL)
+            {
+                continue;
+            }
+            currKind = block.kind;
 
 			if (currKind == targetKind) {
 				matchingBlocks.Add (blockObject);
@@ -247,46 +256,46 @@ public class Board : MonoBehaviour {
 		}
 		matchingBlocks.Clear ();
 
-
 		return matchedBlocks;
 	}
 
-	private void _destoryBlocks(List<GameObject> targetBlocks) {
-		foreach (GameObject blockObject in targetBlocks) {
-			Block block = blockObject.GetComponent<Block> ();
-			_blocks [block.col, block.row] = null;
-			Destroy (blockObject);
-		}
-	}
+    private void _disappearBlocks(List<GameObject> targetBlocks) {
+        foreach (GameObject blockObject in targetBlocks) {
+            Block block = blockObject.GetComponent<Block>();
+            block.Disappear();
+        }
+    }
 
 	private Vector2 _getBlockPos(int col, int row) {
 		return new Vector2 (_blockSize.x * col, -_blockSize.y * row);
 	}
 
-	private void _fallBlocks()
-	{
-		for (int col = 0; col < maxCol; ++col) {
-			int blankCount = 0;
-			for (int row = maxRow - 1; row >= 0; --row) {
-				if (_blocks [col, row] == null) {
-					++blankCount;
-				} else {
-					if (blankCount > 0) {
-						Block aboveBlock = _blocks [col, row].GetComponent<Block> ();
-						aboveBlock.Fall (_getBlockPos (col, row + blankCount));
-						_blocks [col, row + blankCount] = _blocks [col, row];
-						aboveBlock.SetPos (col, row + blankCount);
-						_blocks [col, row] = null;
-					}
-				}
-			}
+    private void _fallBlocks(int col) {
+        int blankCount = 0;
+        for (int row = maxRow - 1; row >= 0; --row)
+        {
+            if (_blocks[col, row] == null)
+            {
+                ++blankCount;
+            }
+            else {
+                if (blankCount > 0)
+                {
+                    Block aboveBlock = _blocks[col, row].GetComponent<Block>();
+                    aboveBlock.Fall(_getBlockPos(col, row + blankCount));
+                    _blocks[col, row + blankCount] = _blocks[col, row];
+                    aboveBlock.SetPos(col, row + blankCount);
+                    _blocks[col, row] = null;
+                }
+            }
+        }
 
-			for (int i = 0; i < blankCount; ++i) {
-				int fallRow = blankCount - (i + 1);
-				Block block = _createBlock (_getBlockPos (col, -(i + 1)), col, fallRow);
-				_blocks[col, blankCount - (i + 1)] = block.gameObject;
-				block.Fall (_getBlockPos(col, blankCount - (i + 1)));
-			}
-		}
-	}
+        for (int i = 0; i < blankCount; ++i)
+        {
+            int fallRow = blankCount - (i + 1);
+            Block block = _createBlock(_getBlockPos(col, -(i + 1)), col, fallRow);
+            _blocks[col, blankCount - (i + 1)] = block.gameObject;
+            block.Fall(_getBlockPos(col, blankCount - (i + 1)));
+        }
+    }
 }
