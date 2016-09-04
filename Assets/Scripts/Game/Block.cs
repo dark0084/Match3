@@ -16,6 +16,7 @@ public class Block : MonoBehaviour {
 
     public enum State {
         NORMAL,
+        SWAP,
         DISAPPEAR,
         FALL
     }

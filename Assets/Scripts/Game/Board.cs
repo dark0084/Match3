@@ -44,23 +44,33 @@ public class Board : MonoBehaviour {
 	}
 	
 	void Update () {
-		if (Input.GetMouseButtonDown (0)) {
+		if (Input.GetMouseButton (0)) {
 			Vector2 pos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
 			RaycastHit2D hit = Physics2D.Raycast (pos, Vector2.zero, 0f);
 
 			if (hit.collider != null) {
-				if (_selectedBlock != null) {
-					if (_checkAdjoinBlock (_selectedBlock, hit.collider.gameObject)) {
-						StartCoroutine(_swapCoroutine(_selectedBlock, hit.collider.gameObject));
-						_selectedBlock = null;
-					} else {
-						_selectedBlock = hit.collider.gameObject;
-					}
-				} else {
-					_selectedBlock = hit.collider.gameObject;
-				}
-			}
+                GameObject hitObject = hit.collider.gameObject;
+                Block hitBlock = hitObject.GetComponent<Block>();
+
+                if(hitBlock.state == Block.State.NORMAL) {
+                    if (_selectedBlock != null && _selectedBlock != hitObject)
+                    {
+                        if (_checkAdjoinBlock(_selectedBlock, hitObject))
+                        {
+                            StartCoroutine(_swapCoroutine(_selectedBlock, hitObject));
+                            _selectedBlock = null;
+                        }
+                        else {
+                            _selectedBlock = hitObject;
+                        }
+                    }
+                    else {
+                        _selectedBlock = hitObject;
+                    }
+                }
+            }
 		}
+
 		_limitTimer.UpdateSec (Time.deltaTime);
 		if (progressbarObject != null) {
 			progressbarObject.SetProgress (1.0f - _limitTimer.Ratio);
@@ -142,6 +152,9 @@ public class Board : MonoBehaviour {
 		Block block1 = blockObject1.GetComponent<Block> ();
 		Block block2 = blockObject2.GetComponent<Block> ();
 
+        block1.state = Block.State.SWAP;
+        block2.state = Block.State.SWAP;
+
 		//Swap Ani Start
 		Vector2 block1Pos = _getBlockPos(block1.col, block1.row);
 		Vector2 block2Pos = _getBlockPos(block2.col, block2.row);
@@ -158,13 +171,19 @@ public class Board : MonoBehaviour {
 			yield return null;
 		}
 
-		_swapBlockPosition (blockObject1, blockObject2);
+        block1.state = Block.State.NORMAL;
+        block2.state = Block.State.NORMAL;
+
+        _swapBlockPosition (blockObject1, blockObject2);
 
 		List<GameObject> matchedBlocks1 = _matchingBlocks (blockObject1);
 		List<GameObject> matchedBlocks2 = _matchingBlocks (blockObject2);
 
 		if (matchedBlocks1.Count == 0 && matchedBlocks2.Count == 0) {
-			t = 0.0f;
+            block1.state = Block.State.SWAP;
+            block2.state = Block.State.SWAP;
+
+            t = 0.0f;
 			while (t < 1.0f) {
 				t += 5.0f * Time.deltaTime;
 				if (t > 1.0f) {
@@ -176,7 +195,11 @@ public class Board : MonoBehaviour {
 				yield return null;
 			}
 			_swapBlockPosition (blockObject1, blockObject2);
-			yield break;
+
+            block1.state = Block.State.NORMAL;
+            block2.state = Block.State.NORMAL;
+
+            yield break;
 		}
 
         _disappearBlocks (matchedBlocks1);
