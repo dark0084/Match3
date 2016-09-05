@@ -81,17 +81,6 @@ public class Board : MonoBehaviour {
 		}
 	}
 
-	public void MatchingBlock(GameObject blockObject){
-		List<GameObject> matchedList = _matchingBlock (blockObject);
-		_disappearBlocks (matchedList);
-	}
-
-    public void DestoryBlock(Block block) {
-        _blocks[block.col, block.row] = null;
-        Destroy(block.gameObject);
-        _fallBlocks(block.col);
-    }
-
 	private void _checkDisappearingBlocks() {
 		if (_disappearingBlocks.Count == 0) {
 			return;
@@ -336,32 +325,7 @@ public class Board : MonoBehaviour {
         }
     }
 
-    private void _fallBlocks(int col) {
-        int blankCount = 0;
-        for (int row = maxRow - 1; row >= 0; --row) {
-			if (_blocks[col, row] == null) {
-                ++blankCount;
-            }
-            else {
-                if (blankCount > 0) {
-                    Block aboveBlock = _blocks[col, row].GetComponent<Block>();
-                    aboveBlock.Fall(_getBlockPos(col, row + blankCount));
-                    _blocks[col, row + blankCount] = _blocks[col, row];
-                    aboveBlock.SetPos(col, row + blankCount);
-                    _blocks[col, row] = null;
-                }
-            }
-        }
-
-        for (int i = 0; i < blankCount; ++i) {
-            int fallRow = blankCount - (i + 1);
-            Block block = _createBlock(_getBlockPos(col, -(i + 1)), col, fallRow);
-            _blocks[col, blankCount - (i + 1)] = block.gameObject;
-            block.Fall(_getBlockPos(col, blankCount - (i + 1)));
-        }
-    }
-
-	private void _fallBlocks() {
+    private void _fallBlocks() {
 		for (int col = 0; col < maxCol; ++col)
 		{
 			int blankCount = 0;

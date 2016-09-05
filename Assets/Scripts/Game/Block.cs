@@ -56,7 +56,6 @@ public class Block : MonoBehaviour {
 		}
 
         state = State.NORMAL;
-		//board.MatchingBlock (gameObject);
 	}
 
     public void Disappear() {
@@ -81,7 +80,5 @@ public class Block : MonoBehaviour {
         }
 
         state = State.NORMAL;
-
-        //board.DestoryBlock(this);
     }
 }
