@@ -70,11 +70,9 @@ public class Block : MonoBehaviour {
         state = State.DISAPPEAR;
 
         float t = 0.0f;
-        while (t < 1.0f)
-        {
+        while (t < 1.0f) {
             t += 2.0f * Time.deltaTime;
-            if (t >= 1.0f)
-            {
+            if (t >= 1.0f) {
                 t = 1.0f;
             }
             transform.localScale = Vector3.Lerp(startScale, endScale, t);

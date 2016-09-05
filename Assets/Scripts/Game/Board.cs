@@ -34,7 +34,7 @@ public class Board : MonoBehaviour {
 				Block block = _createBlock (_getBlockPos (col, row), col, row);
 				_blocks [col, row] = block.gameObject;
 
-				while (_matchingBlocks (block.gameObject).Count > 0) {
+				while (_matchingBlock (block.gameObject).Count > 0) {
 					_setRandomBlockColor (block);
 				}
 			}
@@ -53,10 +53,8 @@ public class Board : MonoBehaviour {
                 Block hitBlock = hitObject.GetComponent<Block>();
 
                 if(hitBlock.state == Block.State.NORMAL) {
-                    if (_selectedBlock != null && _selectedBlock != hitObject)
-                    {
-                        if (_checkAdjoinBlock(_selectedBlock, hitObject))
-                        {
+                    if (_selectedBlock != null && _selectedBlock != hitObject) {
+                        if (_checkAdjoinBlock(_selectedBlock, hitObject)) {
                             StartCoroutine(_swapCoroutine(_selectedBlock, hitObject));
                             _selectedBlock = null;
                         }
@@ -78,7 +76,7 @@ public class Board : MonoBehaviour {
 	}
 
 	public void MatchingBlock(GameObject blockObject){
-		List<GameObject> matchedList = _matchingBlocks (blockObject);
+		List<GameObject> matchedList = _matchingBlock (blockObject);
 		_disappearBlocks (matchedList);
 	}
 
@@ -108,6 +106,10 @@ public class Board : MonoBehaviour {
 
 		SpriteRenderer sr = block.gameObject.GetComponent<SpriteRenderer>();
 		sr.color = blockColors[kind];
+	}
+
+	private Vector2 _getBlockPos(int col, int row) {
+		return new Vector2 (_blockSize.x * col, -_blockSize.y * row);
 	}
 
 	private bool _checkAdjoinBlock(GameObject blockObject1, GameObject blockObject2) {
@@ -152,12 +154,12 @@ public class Board : MonoBehaviour {
 		Block block1 = blockObject1.GetComponent<Block> ();
 		Block block2 = blockObject2.GetComponent<Block> ();
 
-        block1.state = Block.State.SWAP;
-        block2.state = Block.State.SWAP;
-
 		//Swap Ani Start
 		Vector2 block1Pos = _getBlockPos(block1.col, block1.row);
 		Vector2 block2Pos = _getBlockPos(block2.col, block2.row);
+
+		block1.state = Block.State.SWAP;
+		block2.state = Block.State.SWAP;
 
 		float t = 0.0f;
 		while (t < 1.0f) {
@@ -176,8 +178,8 @@ public class Board : MonoBehaviour {
 
         _swapBlockPosition (blockObject1, blockObject2);
 
-		List<GameObject> matchedBlocks1 = _matchingBlocks (blockObject1);
-		List<GameObject> matchedBlocks2 = _matchingBlocks (blockObject2);
+		List<GameObject> matchedBlocks1 = _matchingBlock (blockObject1);
+		List<GameObject> matchedBlocks2 = _matchingBlock (blockObject2);
 
 		if (matchedBlocks1.Count == 0 && matchedBlocks2.Count == 0) {
             block1.state = Block.State.SWAP;
@@ -206,7 +208,7 @@ public class Board : MonoBehaviour {
         _disappearBlocks (matchedBlocks2);
 	}
 
-	private List<GameObject> _matchingBlocks(GameObject targetObject){
+	private List<GameObject> _matchingBlock(GameObject targetObject){
 		Block targetBlock = targetObject.GetComponent<Block> ();
 
 		int targetCol = targetBlock.col;
@@ -218,7 +220,7 @@ public class Board : MonoBehaviour {
 		int startRow = targetRow - 2 < 0 ? 0 : targetRow - 2;
 		int endRow = targetRow + 3 > maxRow ? maxRow : targetRow + 3;
 
-		List<GameObject> matchingBlocks = new List<GameObject>();
+		List<GameObject> matchingBlocks = new List<GameObject> ();
 		List<GameObject> matchedBlocks = new List<GameObject> ();
 
 		//Horizontal
@@ -257,8 +259,7 @@ public class Board : MonoBehaviour {
 				continue;
 			}
 			Block block = blockObject.GetComponent<Block> ();
-            if (block.state != Block.State.NORMAL)
-            {
+            if (block.state != Block.State.NORMAL) {
                 continue;
             }
             currKind = block.kind;
@@ -289,21 +290,14 @@ public class Board : MonoBehaviour {
         }
     }
 
-	private Vector2 _getBlockPos(int col, int row) {
-		return new Vector2 (_blockSize.x * col, -_blockSize.y * row);
-	}
-
     private void _fallBlocks(int col) {
         int blankCount = 0;
-        for (int row = maxRow - 1; row >= 0; --row)
-        {
-            if (_blocks[col, row] == null)
-            {
+        for (int row = maxRow - 1; row >= 0; --row) {
+			if (_blocks[col, row] == null) {
                 ++blankCount;
             }
             else {
-                if (blankCount > 0)
-                {
+                if (blankCount > 0) {
                     Block aboveBlock = _blocks[col, row].GetComponent<Block>();
                     aboveBlock.Fall(_getBlockPos(col, row + blankCount));
                     _blocks[col, row + blankCount] = _blocks[col, row];
@@ -313,8 +307,7 @@ public class Board : MonoBehaviour {
             }
         }
 
-        for (int i = 0; i < blankCount; ++i)
-        {
+        for (int i = 0; i < blankCount; ++i) {
             int fallRow = blankCount - (i + 1);
             Block block = _createBlock(_getBlockPos(col, -(i + 1)), col, fallRow);
             _blocks[col, blankCount - (i + 1)] = block.gameObject;
