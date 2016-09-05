@@ -82,6 +82,6 @@ public class Block : MonoBehaviour {
 
         state = State.NORMAL;
 
-        board.DestoryBlock(this);
+        //board.DestoryBlock(this);
     }
 }

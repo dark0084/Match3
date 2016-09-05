@@ -5,6 +5,8 @@ using System.Collections.Generic;
 public class Board : MonoBehaviour {
 	private GameObject[,] _blocks = null;
 	private GameObject _selectedBlock = null;
+	private List<Block> _disappearingBlocks = new List<Block> ();
+
 	private LimitTimer _limitTimer = null;
 
 	public GameObject blockPrefab = null;
@@ -68,7 +70,7 @@ public class Board : MonoBehaviour {
                 }
             }
 		}
-
+		_checkDisappearingBlocks ();
 		_limitTimer.UpdateSec (Time.deltaTime);
 		if (progressbarObject != null) {
 			progressbarObject.SetProgress (1.0f - _limitTimer.Ratio);
@@ -85,6 +87,24 @@ public class Board : MonoBehaviour {
         Destroy(block.gameObject);
         _fallBlocks(block.col);
     }
+
+	private void _checkDisappearingBlocks() {
+		if (_disappearingBlocks.Count == 0) {
+			return;
+		}
+
+		foreach (Block block in _disappearingBlocks) {
+			if (block.state != Block.State.NORMAL) {
+				return;
+			}
+		}
+		foreach (Block block in _disappearingBlocks) {
+			_blocks[block.col, block.row] = null;
+			Destroy(block.gameObject);
+		}
+		_fallBlocks ();
+		_disappearingBlocks.Clear ();
+	}
 
 	private Block _createBlock(Vector2 pos, int col, int row) {
 		GameObject go = Instantiate (blockPrefab);
@@ -286,6 +306,7 @@ public class Board : MonoBehaviour {
     private void _disappearBlocks(List<GameObject> targetBlocks) {
         foreach (GameObject blockObject in targetBlocks) {
             Block block = blockObject.GetComponent<Block>();
+			_disappearingBlocks.Add (block);
             block.Disappear();
         }
     }
@@ -314,4 +335,32 @@ public class Board : MonoBehaviour {
             block.Fall(_getBlockPos(col, blankCount - (i + 1)));
         }
     }
+
+	private void _fallBlocks() {
+		for (int col = 0; col < maxCol; ++col)
+		{
+			int blankCount = 0;
+			for (int row = maxRow - 1; row >= 0; --row) {
+				if (_blocks[col, row] == null) {
+					++blankCount;
+				}
+				else {
+					if (blankCount > 0) {
+						Block aboveBlock = _blocks[col, row].GetComponent<Block>();
+						aboveBlock.Fall(_getBlockPos(col, row + blankCount));
+						_blocks[col, row + blankCount] = _blocks[col, row];
+						aboveBlock.SetPos(col, row + blankCount);
+						_blocks[col, row] = null;
+					}
+				}
+			}
+
+			for (int i = 0; i < blankCount; ++i) {
+				int fallRow = blankCount - (i + 1);
+				Block block = _createBlock(_getBlockPos(col, -(i + 1)), col, fallRow);
+				_blocks[col, blankCount - (i + 1)] = block.gameObject;
+				block.Fall(_getBlockPos(col, blankCount - (i + 1)));
+			}
+		}
+	}
 }
