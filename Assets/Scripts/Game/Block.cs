@@ -56,7 +56,7 @@ public class Block : MonoBehaviour {
 		}
 
         state = State.NORMAL;
-		board.MatchingBlock (gameObject);
+		//board.MatchingBlock (gameObject);
 	}
 
     public void Disappear() {

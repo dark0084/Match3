@@ -6,6 +6,7 @@ public class Board : MonoBehaviour {
 	private GameObject[,] _blocks = null;
 	private GameObject _selectedBlock = null;
 	private List<Block> _disappearingBlocks = new List<Block> ();
+	private List<Block> _fallingBlocks = new List<Block> ();
 
 	private LimitTimer _limitTimer = null;
 
@@ -70,7 +71,10 @@ public class Board : MonoBehaviour {
                 }
             }
 		}
+
 		_checkDisappearingBlocks ();
+		_checkFallingBlocks ();
+
 		_limitTimer.UpdateSec (Time.deltaTime);
 		if (progressbarObject != null) {
 			progressbarObject.SetProgress (1.0f - _limitTimer.Ratio);
@@ -104,6 +108,27 @@ public class Board : MonoBehaviour {
 		}
 		_fallBlocks ();
 		_disappearingBlocks.Clear ();
+	}
+
+	private void _checkFallingBlocks() {
+		if (_fallingBlocks.Count == 0) {
+			return;
+		}
+
+		foreach (Block block in _fallingBlocks) {
+			if (block.state != Block.State.NORMAL) {
+				return;
+			}
+		}
+
+		List<GameObject> matchedBlocks = new List<GameObject> ();
+
+		foreach (Block block in _fallingBlocks) {
+			matchedBlocks.AddRange (_matchingBlock (block.gameObject));
+		}
+
+		_disappearBlocks (matchedBlocks);
+		_fallingBlocks.Clear ();
 	}
 
 	private Block _createBlock(Vector2 pos, int col, int row) {
@@ -347,10 +372,12 @@ public class Board : MonoBehaviour {
 				else {
 					if (blankCount > 0) {
 						Block aboveBlock = _blocks[col, row].GetComponent<Block>();
-						aboveBlock.Fall(_getBlockPos(col, row + blankCount));
 						_blocks[col, row + blankCount] = _blocks[col, row];
 						aboveBlock.SetPos(col, row + blankCount);
 						_blocks[col, row] = null;
+
+						aboveBlock.Fall(_getBlockPos(col, row + blankCount));
+						_fallingBlocks.Add (aboveBlock);
 					}
 				}
 			}
@@ -359,7 +386,9 @@ public class Board : MonoBehaviour {
 				int fallRow = blankCount - (i + 1);
 				Block block = _createBlock(_getBlockPos(col, -(i + 1)), col, fallRow);
 				_blocks[col, blankCount - (i + 1)] = block.gameObject;
+
 				block.Fall(_getBlockPos(col, blankCount - (i + 1)));
+				_fallingBlocks.Add (block);
 			}
 		}
 	}
