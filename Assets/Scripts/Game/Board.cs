@@ -1,17 +1,24 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 
 public class Board : MonoBehaviour {
+
 	private Block[,] _blocks = null;
 	private Block _selectedBlock = null;
 	private List<Block> _disappearingBlocks = new List<Block> ();
 	private List<Block> _fallingBlocks = new List<Block> ();
 
 	private LimitTimer _limitTimer = null;
+	private LimitTimer _comboLimitTimer = null;
+
+	private int _score = 0;
 
 	public GameObject blockPrefab = null;
 	public Progressbar progressbarObject = null;
+	public Text scoreText = null;
+
 	public int maxCol = 8;
 	public int maxRow = 8;
 
@@ -116,7 +123,7 @@ public class Board : MonoBehaviour {
 		foreach (Block block in _fallingBlocks) {
 			matchedBlocks.AddRange (_matchingBlock (block));
 		}
-
+		_calculateScore (matchedBlocks);
 		_disappearBlocks (matchedBlocks);
 		_fallingBlocks.Clear ();
 	}
@@ -230,10 +237,18 @@ public class Board : MonoBehaviour {
             yield break;
 		}
 
+		_calculateScore (matchedBlocks1);
+		_calculateScore (matchedBlocks2);
         _disappearBlocks (matchedBlocks1);
         _disappearBlocks (matchedBlocks2);
 	}
 
+	private void _calculateScore(List<Block> matchedBlock) {
+		int score = matchedBlock.Count * 10;
+
+		_score += score;
+		scoreText.text = "점수 : " + _score;
+	}
 
 	private List<Block> _matchingBlock(Block targetBlock){
 		int targetCol = targetBlock.col;
@@ -303,6 +318,7 @@ public class Board : MonoBehaviour {
 		}
 		matchingBlocks.Clear ();
 
+		matchedBlocks = new List<Block> (new HashSet<Block> (matchedBlocks));
 		return matchedBlocks;
 	}
 
