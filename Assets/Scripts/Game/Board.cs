@@ -4,11 +4,16 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class Board : MonoBehaviour {
+	public enum State {
+		Playing,
+		TimeOver
+	}
 
 	private Block[,] _blocks = null;
 	private Block _selectedBlock = null;
 	private List<Block> _disappearingBlocks = new List<Block> ();
 	private List<Block> _fallingBlocks = new List<Block> ();
+	private State _state = State.Playing;
 
 	private LimitTimer _limitTimer = null;
 	private LimitTimer _comboLimitTimer = null;
@@ -18,6 +23,7 @@ public class Board : MonoBehaviour {
 	public GameObject blockPrefab = null;
 	public Progressbar progressbarObject = null;
 	public Text scoreText = null;
+	public Text timeOverText = null;
 
 	public int maxCol = 8;
 	public int maxRow = 8;
@@ -52,41 +58,49 @@ public class Board : MonoBehaviour {
 
 		_limitTimer = new LimitTimer ();
 		_limitTimer.SetLimitSec (60.0f); //60Seconds
+
+		_comboLimitTimer = new LimitTimer ();
+
+		scoreText.text = "점수 : " + _score;
 	}
 	
 	void Update () {
-		if (Input.GetMouseButton (0)) {
-			Vector2 pos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
-			RaycastHit2D hit = Physics2D.Raycast (pos, Vector2.zero, 0f);
+		if (_state == State.Playing) {
+			if (Input.GetMouseButton (0)) {
+				Vector2 pos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
+				RaycastHit2D hit = Physics2D.Raycast (pos, Vector2.zero, 0f);
 
-			if (hit.collider != null) {
-                GameObject hitObject = hit.collider.gameObject;
-                Block hitBlock = hitObject.GetComponent<Block>();
+				if (hit.collider != null) {
+					GameObject hitObject = hit.collider.gameObject;
+					Block hitBlock = hitObject.GetComponent<Block> ();
 
-                if(hitBlock.state == Block.State.NORMAL) {
-					if (_selectedBlock != null && _selectedBlock != hitBlock) {
-						if (_checkAdjoinBlock(_selectedBlock, hitBlock)) {
-							StartCoroutine(_swapCoroutine(_selectedBlock, hitBlock));
-                            _selectedBlock = null;
-                        }
-                        else {
-                            _selectedBlock = hitBlock;
-                        }
-                    }
-                    else {
-                        _selectedBlock = hitBlock;
-                    }
-                }
-            }
+					if (hitBlock.state == Block.State.NORMAL) {
+						if (_selectedBlock != null && _selectedBlock != hitBlock) {
+							if (_checkAdjoinBlock (_selectedBlock, hitBlock)) {
+								StartCoroutine (_swapCoroutine (_selectedBlock, hitBlock));
+								_selectedBlock = null;
+							} else {
+								_selectedBlock = hitBlock;
+							}
+						} else {
+							_selectedBlock = hitBlock;
+						}
+					}
+				}
+			}
+
+			_limitTimer.UpdateSec (Time.deltaTime);
+			if (progressbarObject != null) {
+				progressbarObject.SetProgress (1.0f - _limitTimer.Ratio);
+			}
+			if (_limitTimer.IsTimeOver) {
+				_state = State.TimeOver;
+				timeOverText.gameObject.SetActive (true);
+			}
 		}
 
 		_checkDisappearingBlocks ();
 		_checkFallingBlocks ();
-
-		_limitTimer.UpdateSec (Time.deltaTime);
-		if (progressbarObject != null) {
-			progressbarObject.SetProgress (1.0f - _limitTimer.Ratio);
-		}
 	}
 
 	private void _checkDisappearingBlocks() {
