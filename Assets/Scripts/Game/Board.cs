@@ -3,8 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class Board : MonoBehaviour {
-	private GameObject[,] _blocks = null;
-	private GameObject _selectedBlock = null;
+	private Block[,] _blocks = null;
+	private Block _selectedBlock = null;
 	private List<Block> _disappearingBlocks = new List<Block> ();
 	private List<Block> _fallingBlocks = new List<Block> ();
 
@@ -30,18 +30,19 @@ public class Board : MonoBehaviour {
 
 		transform.position = new Vector2((-boardWidth + _blockSize.x) * 0.5f, (boardHeight - _blockSize.y) * 0.5f);
 
-		_blocks = new GameObject[maxCol, maxRow];
+		_blocks = new Block[maxCol, maxRow];
 
 		for (int col = 0; col < maxCol; ++col) {
 			for (int row = 0; row < maxRow; ++row) {
 				Block block = _createBlock (_getBlockPos (col, row), col, row);
-				_blocks [col, row] = block.gameObject;
+				_blocks [col, row] = block;
 
-				while (_matchingBlock (block.gameObject).Count > 0) {
+				while (_matchingBlock (block).Count > 0) {
 					_setRandomBlockColor (block);
 				}
 			}
 		}
+
 		_limitTimer = new LimitTimer ();
 		_limitTimer.SetLimitSec (60.0f); //60Seconds
 	}
@@ -56,17 +57,17 @@ public class Board : MonoBehaviour {
                 Block hitBlock = hitObject.GetComponent<Block>();
 
                 if(hitBlock.state == Block.State.NORMAL) {
-                    if (_selectedBlock != null && _selectedBlock != hitObject) {
-                        if (_checkAdjoinBlock(_selectedBlock, hitObject)) {
-                            StartCoroutine(_swapCoroutine(_selectedBlock, hitObject));
+					if (_selectedBlock != null && _selectedBlock != hitBlock) {
+						if (_checkAdjoinBlock(_selectedBlock, hitBlock)) {
+							StartCoroutine(_swapCoroutine(_selectedBlock, hitBlock));
                             _selectedBlock = null;
                         }
                         else {
-                            _selectedBlock = hitObject;
+                            _selectedBlock = hitBlock;
                         }
                     }
                     else {
-                        _selectedBlock = hitObject;
+                        _selectedBlock = hitBlock;
                     }
                 }
             }
@@ -110,10 +111,10 @@ public class Board : MonoBehaviour {
 			}
 		}
 
-		List<GameObject> matchedBlocks = new List<GameObject> ();
+		List<Block> matchedBlocks = new List<Block> ();
 
 		foreach (Block block in _fallingBlocks) {
-			matchedBlocks.AddRange (_matchingBlock (block.gameObject));
+			matchedBlocks.AddRange (_matchingBlock (block));
 		}
 
 		_disappearBlocks (matchedBlocks);
@@ -146,10 +147,7 @@ public class Board : MonoBehaviour {
 		return new Vector2 (_blockSize.x * col, -_blockSize.y * row);
 	}
 
-	private bool _checkAdjoinBlock(GameObject blockObject1, GameObject blockObject2) {
-		Block block1 = blockObject1.GetComponent<Block> ();
-		Block block2 = blockObject2.GetComponent<Block> ();
-
+	private bool _checkAdjoinBlock(Block block1, Block block2) {
 		//Up
 		if (block1.col == block2.col && block1.row - 1 == block2.row) {
 			return true;
@@ -170,12 +168,9 @@ public class Board : MonoBehaviour {
 		return false;
 	}
 
-	private void _swapBlockPosition(GameObject blockObject1, GameObject blockObject2) {
-		Block block1 = blockObject1.GetComponent<Block> ();
-		Block block2 = blockObject2.GetComponent<Block> ();
-
-		_blocks [block1.col, block1.row] = blockObject2;
-		_blocks [block2.col, block2.row] = blockObject1;
+	private void _swapBlockPosition(Block block1, Block block2) {
+		_blocks [block1.col, block1.row] = block2;
+		_blocks [block2.col, block2.row] = block1;
 
 		int tempCol = block1.col;
 		int tempRow = block1.row;
@@ -184,10 +179,7 @@ public class Board : MonoBehaviour {
 		block2.SetPos (tempCol, tempRow);
 	}
 
-	private IEnumerator _swapCoroutine(GameObject blockObject1, GameObject blockObject2) {
-		Block block1 = blockObject1.GetComponent<Block> ();
-		Block block2 = blockObject2.GetComponent<Block> ();
-
+	private IEnumerator _swapCoroutine(Block block1, Block block2) {
 		//Swap Ani Start
 		Vector2 block1Pos = _getBlockPos(block1.col, block1.row);
 		Vector2 block2Pos = _getBlockPos(block2.col, block2.row);
@@ -201,8 +193,8 @@ public class Board : MonoBehaviour {
 			if (t > 1.0f) {
 				t = 1.0f;
 			}
-			blockObject1.transform.localPosition = Vector2.Lerp (block1Pos, block2Pos, t);
-			blockObject2.transform.localPosition = Vector2.Lerp (block2Pos, block1Pos, t);
+			block1.transform.localPosition = Vector2.Lerp (block1Pos, block2Pos, t);
+			block2.transform.localPosition = Vector2.Lerp (block2Pos, block1Pos, t);
 
 			yield return null;
 		}
@@ -210,10 +202,10 @@ public class Board : MonoBehaviour {
         block1.state = Block.State.NORMAL;
         block2.state = Block.State.NORMAL;
 
-        _swapBlockPosition (blockObject1, blockObject2);
+        _swapBlockPosition (block1, block2);
 
-		List<GameObject> matchedBlocks1 = _matchingBlock (blockObject1);
-		List<GameObject> matchedBlocks2 = _matchingBlock (blockObject2);
+		List<Block> matchedBlocks1 = _matchingBlock (block1);
+		List<Block> matchedBlocks2 = _matchingBlock (block2);
 
 		if (matchedBlocks1.Count == 0 && matchedBlocks2.Count == 0) {
             block1.state = Block.State.SWAP;
@@ -225,12 +217,12 @@ public class Board : MonoBehaviour {
 				if (t > 1.0f) {
 					t = 1.0f;
 				}
-				blockObject1.transform.localPosition = Vector2.Lerp (block2Pos, block1Pos, t);
-				blockObject2.transform.localPosition = Vector2.Lerp (block1Pos, block2Pos, t);
+				block1.transform.localPosition = Vector2.Lerp (block2Pos, block1Pos, t);
+				block2.transform.localPosition = Vector2.Lerp (block1Pos, block2Pos, t);
 
 				yield return null;
 			}
-			_swapBlockPosition (blockObject1, blockObject2);
+			_swapBlockPosition (block1, block2);
 
             block1.state = Block.State.NORMAL;
             block2.state = Block.State.NORMAL;
@@ -242,9 +234,8 @@ public class Board : MonoBehaviour {
         _disappearBlocks (matchedBlocks2);
 	}
 
-	private List<GameObject> _matchingBlock(GameObject targetObject){
-		Block targetBlock = targetObject.GetComponent<Block> ();
 
+	private List<Block> _matchingBlock(Block targetBlock){
 		int targetCol = targetBlock.col;
 		int targetRow = targetBlock.row;
 		Block.Kind targetKind = targetBlock.kind;
@@ -254,24 +245,23 @@ public class Board : MonoBehaviour {
 		int startRow = targetRow - 2 < 0 ? 0 : targetRow - 2;
 		int endRow = targetRow + 3 > maxRow ? maxRow : targetRow + 3;
 
-		List<GameObject> matchingBlocks = new List<GameObject> ();
-		List<GameObject> matchedBlocks = new List<GameObject> ();
+		List<Block> matchingBlocks = new List<Block> ();
+		List<Block> matchedBlocks = new List<Block> ();
 
 		//Horizontal
 		Block.Kind currKind = Block.Kind.MAX;
 		for (int col = startCol; col < endCol; ++col) {
-			GameObject blockObject = _blocks [col, targetRow];
-			if (blockObject == null) {
+			Block block = _blocks [col, targetRow];
+			if (block == null) {
 				continue;
 			}
-			Block block = blockObject.GetComponent<Block> ();
             if (block.state != Block.State.NORMAL) {
                 continue;
             }
             currKind = block.kind;
 
 			if (currKind == targetKind) {
-				matchingBlocks.Add (blockObject);
+				matchingBlocks.Add (block);
 			} else {
 				if (matchingBlocks.Count >= 3) {
 					break;
@@ -288,18 +278,17 @@ public class Board : MonoBehaviour {
 		//Vertical
 		currKind = Block.Kind.MAX;
 		for (int row = startRow; row < endRow; ++row) {
-			GameObject blockObject = _blocks [targetCol, row];
-			if (blockObject == null) {
+			Block block = _blocks [targetCol, row];
+			if (block == null) {
 				continue;
 			}
-			Block block = blockObject.GetComponent<Block> ();
-            if (block.state != Block.State.NORMAL) {
+			if (block.state != Block.State.NORMAL) {
                 continue;
             }
             currKind = block.kind;
 
 			if (currKind == targetKind) {
-				matchingBlocks.Add (blockObject);
+				matchingBlocks.Add (block);
 			} else {
 				// case : OOOXX, OOOOX, XOOOX
 				if (matchingBlocks.Count >= 3) {
@@ -317,10 +306,9 @@ public class Board : MonoBehaviour {
 		return matchedBlocks;
 	}
 
-    private void _disappearBlocks(List<GameObject> targetBlocks) {
-        foreach (GameObject blockObject in targetBlocks) {
-            Block block = blockObject.GetComponent<Block>();
-			_disappearingBlocks.Add (block);
+    private void _disappearBlocks(List<Block> targetBlocks) {
+        foreach (Block block in targetBlocks) {
+            _disappearingBlocks.Add (block);
             block.Disappear();
         }
     }
@@ -335,7 +323,7 @@ public class Board : MonoBehaviour {
 				}
 				else {
 					if (blankCount > 0) {
-						Block aboveBlock = _blocks[col, row].GetComponent<Block>();
+						Block aboveBlock = _blocks[col, row];
 						_blocks[col, row + blankCount] = _blocks[col, row];
 						aboveBlock.SetPos(col, row + blankCount);
 						_blocks[col, row] = null;
@@ -349,7 +337,7 @@ public class Board : MonoBehaviour {
 			for (int i = 0; i < blankCount; ++i) {
 				int fallRow = blankCount - (i + 1);
 				Block block = _createBlock(_getBlockPos(col, -(i + 1)), col, fallRow);
-				_blocks[col, blankCount - (i + 1)] = block.gameObject;
+				_blocks[col, blankCount - (i + 1)] = block;
 
 				block.Fall(_getBlockPos(col, blankCount - (i + 1)));
 				_fallingBlocks.Add (block);
