@@ -16,7 +16,6 @@ public class Board : MonoBehaviour {
 	private State _state = State.Playing;
 
 	private LimitTimer _limitTimer = null;
-	private LimitTimer _comboLimitTimer = null;
 
 	private int _score = 0;
 
@@ -24,6 +23,7 @@ public class Board : MonoBehaviour {
 	public Progressbar progressbarObject = null;
 	public Text scoreText = null;
 	public Text timeOverText = null;
+	public Combo combo = null;
 
 	public int maxCol = 8;
 	public int maxRow = 8;
@@ -58,8 +58,6 @@ public class Board : MonoBehaviour {
 
 		_limitTimer = new LimitTimer ();
 		_limitTimer.SetLimitSec (60.0f); //60Seconds
-
-		_comboLimitTimer = new LimitTimer ();
 
 		scoreText.text = "점수 : " + _score;
 	}
@@ -132,13 +130,16 @@ public class Board : MonoBehaviour {
 			}
 		}
 
-		List<Block> matchedBlocks = new List<Block> ();
-
 		foreach (Block block in _fallingBlocks) {
-			matchedBlocks.AddRange (_matchingBlock (block));
+			List<Block> matchedBlocks = _matchingBlock (block);
+
+			if (matchedBlocks.Count > 0) {
+				_calculateScore (matchedBlocks);
+				_disappearBlocks (matchedBlocks);
+				combo.countCombo ();
+			}
 		}
-		_calculateScore (matchedBlocks);
-		_disappearBlocks (matchedBlocks);
+
 		_fallingBlocks.Clear ();
 	}
 
@@ -251,10 +252,17 @@ public class Board : MonoBehaviour {
             yield break;
 		}
 
-		_calculateScore (matchedBlocks1);
-		_calculateScore (matchedBlocks2);
-        _disappearBlocks (matchedBlocks1);
-        _disappearBlocks (matchedBlocks2);
+		if (matchedBlocks1.Count > 0) {
+			_calculateScore (matchedBlocks1);
+			_disappearBlocks (matchedBlocks1);
+			combo.countCombo ();
+		}
+
+		if (matchedBlocks2.Count > 0) {
+			_calculateScore (matchedBlocks2);
+			_disappearBlocks (matchedBlocks2);
+			combo.countCombo ();
+		}
 	}
 
 	private void _calculateScore(List<Block> matchedBlock) {
