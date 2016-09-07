@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -23,6 +24,7 @@ public class Board : MonoBehaviour {
 	public Progressbar progressbarObject = null;
 	public Text scoreText = null;
 	public Text timeOverText = null;
+	public Button returnBtn = null;
 	public Combo combo = null;
 
 	public int maxCol = 8;
@@ -102,6 +104,7 @@ public class Board : MonoBehaviour {
 			if (_limitTimer.IsTimeOver) {
 				_state = State.TimeOver;
 				timeOverText.gameObject.SetActive (true);
+				returnBtn.gameObject.SetActive (true);
 			}
 		}
 
@@ -389,5 +392,9 @@ public class Board : MonoBehaviour {
 				_fallingBlocks.Add (block);
 			}
 		}
+	}
+
+	public void Return() {
+		SceneManager.LoadScene ("OutGame");
 	}
 }
