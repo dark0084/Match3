@@ -64,6 +64,18 @@ public class Board : MonoBehaviour {
 	
 	void Update () {
 		if (_state == State.Playing) {
+			if (Input.GetMouseButtonDown(0)) {
+				Vector2 pos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
+				RaycastHit2D hit = Physics2D.Raycast (pos, Vector2.zero, 0f);
+
+				if (hit.collider != null) {
+					GameObject hitObject = hit.collider.gameObject;
+					Block hitBlock = hitObject.GetComponent<Block> ();
+					if (hitBlock.state == Block.State.NORMAL) {
+						_selectedBlock = hitBlock;
+					}
+				}
+			}
 			if (Input.GetMouseButton (0)) {
 				Vector2 pos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
 				RaycastHit2D hit = Physics2D.Raycast (pos, Vector2.zero, 0f);
@@ -77,11 +89,7 @@ public class Board : MonoBehaviour {
 							if (_checkAdjoinBlock (_selectedBlock, hitBlock)) {
 								StartCoroutine (_swapCoroutine (_selectedBlock, hitBlock));
 								_selectedBlock = null;
-							} else {
-								_selectedBlock = hitBlock;
 							}
-						} else {
-							_selectedBlock = hitBlock;
 						}
 					}
 				}
