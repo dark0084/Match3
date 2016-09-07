@@ -7,6 +7,7 @@ using System.Collections.Generic;
 public class Board : MonoBehaviour {
 	public enum State {
 		Playing,
+		Pause,
 		TimeOver
 	}
 
@@ -23,7 +24,7 @@ public class Board : MonoBehaviour {
 	public GameObject blockPrefab = null;
 	public Progressbar progressbarObject = null;
 	public Text scoreText = null;
-	public Text timeOverText = null;
+	public Text phraseText = null;
 	public Button retryBtn = null;
 	public Button returnBtn = null;
 	public Combo combo = null;
@@ -57,7 +58,7 @@ public class Board : MonoBehaviour {
 	
 	void Update () {
 		if (_state == State.Playing) {
-			if (Input.GetMouseButtonDown(0)) {
+			if (Input.GetMouseButtonDown (0)) {
 				Vector2 pos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
 				RaycastHit2D hit = Physics2D.Raycast (pos, Vector2.zero, 0f);
 
@@ -89,14 +90,34 @@ public class Board : MonoBehaviour {
 			}
 
 			_limitTimer.UpdateSec (Time.deltaTime);
+			combo.UpdateSec (Time.deltaTime);
+
 			if (progressbarObject != null) {
 				progressbarObject.SetProgress (1.0f - _limitTimer.Ratio);
 			}
 			if (_limitTimer.IsTimeOver) {
 				_state = State.TimeOver;
-				timeOverText.gameObject.SetActive (true);
+				phraseText.text = "타임 오버";
+				phraseText.gameObject.SetActive (true);
 				retryBtn.gameObject.SetActive (true);
 				returnBtn.gameObject.SetActive (true);
+				combo.hide ();
+			}
+
+			if (Input.GetKeyDown (KeyCode.Escape)) {
+				phraseText.text = "일시 정지";
+				phraseText.gameObject.SetActive (true);
+				retryBtn.gameObject.SetActive (true);
+				returnBtn.gameObject.SetActive (true);
+				_state = State.Pause;
+			}
+		} else if (_state == State.Pause) {
+			if (Input.GetKeyDown (KeyCode.Escape)) {
+				phraseText.text = "타임 오버";
+				phraseText.gameObject.SetActive (false);
+				retryBtn.gameObject.SetActive (false);
+				returnBtn.gameObject.SetActive (false);
+				_state = State.Playing;
 			}
 		}
 
@@ -409,11 +430,11 @@ public class Board : MonoBehaviour {
 		}
 	}
 
-	public void Return() {
+	public void returnTitle() {
 		SceneManager.LoadScene ("OutGame");
 	}
 
-	public void Retry() {
+	public void retryGame() {
 		_destoryBlocks ();
 		_createBlocks ();
 		_score = 0;
@@ -424,8 +445,9 @@ public class Board : MonoBehaviour {
 
 		_state = State.Playing;
 
-		timeOverText.gameObject.SetActive (false);
+		phraseText.gameObject.SetActive (false);
 		retryBtn.gameObject.SetActive (false);
 		returnBtn.gameObject.SetActive (false);
+		combo.hide ();
 	}
 }
