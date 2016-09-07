@@ -24,6 +24,7 @@ public class Board : MonoBehaviour {
 	public Progressbar progressbarObject = null;
 	public Text scoreText = null;
 	public Text timeOverText = null;
+	public Button retryBtn = null;
 	public Button returnBtn = null;
 	public Combo combo = null;
 
@@ -46,17 +47,7 @@ public class Board : MonoBehaviour {
 		transform.position = new Vector2((-boardWidth + _blockSize.x) * 0.5f, (boardHeight - _blockSize.y) * 0.5f);
 
 		_blocks = new Block[maxCol, maxRow];
-
-		for (int col = 0; col < maxCol; ++col) {
-			for (int row = 0; row < maxRow; ++row) {
-				Block block = _createBlock (_getBlockPos (col, row), col, row);
-				_blocks [col, row] = block;
-
-				while (_matchingBlock (block).Count > 0) {
-					_setRandomBlockColor (block);
-				}
-			}
-		}
+		_createBlocks ();
 
 		_limitTimer = new LimitTimer ();
 		_limitTimer.SetLimitSec (60.0f); //60Seconds
@@ -104,6 +95,7 @@ public class Board : MonoBehaviour {
 			if (_limitTimer.IsTimeOver) {
 				_state = State.TimeOver;
 				timeOverText.gameObject.SetActive (true);
+				retryBtn.gameObject.SetActive (true);
 				returnBtn.gameObject.SetActive (true);
 			}
 		}
@@ -394,7 +386,46 @@ public class Board : MonoBehaviour {
 		}
 	}
 
+	private void _createBlocks() {
+		for (int col = 0; col < maxCol; ++col) {
+			for (int row = 0; row < maxRow; ++row) {
+				Block block = _createBlock (_getBlockPos (col, row), col, row);
+				_blocks [col, row] = block;
+
+				while (_matchingBlock (block).Count > 0) {
+					_setRandomBlockColor (block);
+				}
+			}
+		}
+	}
+
+	private void _destoryBlocks() {
+		for (int col = 0; col < maxCol; ++col) {
+			for (int row = 0; row < maxRow; ++row) {
+				Block block = _blocks [col, row];
+				_blocks [col, row] = null;
+				Destroy (block.gameObject);
+			}
+		}
+	}
+
 	public void Return() {
 		SceneManager.LoadScene ("OutGame");
+	}
+
+	public void Retry() {
+		_destoryBlocks ();
+		_createBlocks ();
+		_score = 0;
+
+		scoreText.text = "점수 : " + _score;
+
+		_limitTimer.SetLimitSec (60.0f);
+
+		_state = State.Playing;
+
+		timeOverText.gameObject.SetActive (false);
+		retryBtn.gameObject.SetActive (false);
+		returnBtn.gameObject.SetActive (false);
 	}
 }
