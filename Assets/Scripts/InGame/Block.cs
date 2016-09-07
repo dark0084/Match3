@@ -46,7 +46,7 @@ public class Block : MonoBehaviour {
 		float t = 0.0f;
 
 		while (t < 1.0f) {
-			t += 5.0f * Time.deltaTime;
+			t += 3.0f * Time.deltaTime;
 			if (t >= 1.0f) {
 				t = 1.0f;
 			}
