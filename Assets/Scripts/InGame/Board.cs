@@ -64,7 +64,16 @@ public class Board : MonoBehaviour {
 					GameObject hitObject = hit.collider.gameObject;
 					Block hitBlock = hitObject.GetComponent<Block> ();
 					if (hitBlock.state == Block.State.NORMAL) {
-						_selectedBlock = hitBlock;
+						if (_selectedBlock != null && _selectedBlock != hitBlock) {
+							if (_checkAdjoinBlock (_selectedBlock, hitBlock)) {
+								StartCoroutine (_swapCoroutine (_selectedBlock, hitBlock));
+								_selectedBlock = null;
+							} else {
+								_selectedBlock = hitBlock;
+							}
+						} else {
+							_selectedBlock = hitBlock;
+						}
 					}
 				}
 			}
