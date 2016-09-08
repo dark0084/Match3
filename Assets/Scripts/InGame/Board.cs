@@ -21,7 +21,6 @@ public class Board : MonoBehaviour {
 
 	private int _score = 0;
 
-	public GameObject blockPrefab = null;
 	public Progressbar progressbarObject = null;
 	public Text scoreText = null;
 	public Text phraseText = null;
@@ -32,12 +31,12 @@ public class Board : MonoBehaviour {
 	public int maxCol = 8;
 	public int maxRow = 8;
 
-	public Color[] blockColors;
+	public GameObject[] fruitPrefabs;
 
 	private Vector2 _blockSize = new Vector2(0.0f, 0.0f);
 
 	void Start () {
-		SpriteRenderer psr = blockPrefab.GetComponent<SpriteRenderer> ();
+		SpriteRenderer psr = fruitPrefabs[0].GetComponent<SpriteRenderer> ();
 		Vector2 spriteSize = psr.sprite.rect.size;
 		float pixelToUnit = psr.sprite.pixelsPerUnit;
 		_blockSize = spriteSize / pixelToUnit;
@@ -46,7 +45,6 @@ public class Board : MonoBehaviour {
 		float boardHeight = _blockSize.y * maxRow;
 
 		transform.position = new Vector2((-boardWidth + _blockSize.x) * 0.5f, (boardHeight - _blockSize.y) * 0.5f);
-
 		_blocks = new Block[maxCol, maxRow];
 		_createBlocks ();
 
@@ -167,8 +165,8 @@ public class Board : MonoBehaviour {
 		_fallingBlocks.Clear ();
 	}
 
-	private Block _createBlock(Vector2 pos, int col, int row) {
-		GameObject go = Instantiate (blockPrefab);
+	private Block _createBlock(Block fruitPrefabBlock, Vector2 pos, int col, int row) {
+		GameObject go = Instantiate (fruitPrefabBlock.gameObject);
 		go.transform.parent = transform;
 		go.transform.localPosition = pos;
 
@@ -176,17 +174,13 @@ public class Board : MonoBehaviour {
 		block.SetPos (col, row);
 		block.board = this;
 
-		_setRandomBlockColor (block);
-
 		return block;
 	}
 
-	private void _setRandomBlockColor(Block block) {
-		int kind = Random.Range(0, (int) Block.Kind.MAX);
-		block.kind = (Block.Kind) kind;
-
-		SpriteRenderer sr = block.gameObject.GetComponent<SpriteRenderer>();
-		sr.color = blockColors[kind];
+	private Block _getRandomBlock() {
+		int index = Random.Range (0, fruitPrefabs.Length);
+		GameObject randomPrefab = fruitPrefabs [index];
+		return randomPrefab.GetComponent<Block> ();
 	}
 
 	private Vector2 _getBlockPos(int col, int row) {
@@ -398,7 +392,7 @@ public class Board : MonoBehaviour {
 
 			for (int i = 0; i < blankCount; ++i) {
 				int fallRow = blankCount - (i + 1);
-				Block block = _createBlock(_getBlockPos(col, -(i + 1)), col, fallRow);
+				Block block = _createBlock(_getRandomBlock(), _getBlockPos(col, -(i + 1)), col, fallRow);
 				_blocks[col, blankCount - (i + 1)] = block;
 
 				block.Fall(_getBlockPos(col, blankCount - (i + 1)));
@@ -410,12 +404,16 @@ public class Board : MonoBehaviour {
 	private void _createBlocks() {
 		for (int col = 0; col < maxCol; ++col) {
 			for (int row = 0; row < maxRow; ++row) {
-				Block block = _createBlock (_getBlockPos (col, row), col, row);
+				Block block = _getRandomBlock ();
+				block.SetPos (col, row);
 				_blocks [col, row] = block;
 
 				while (_matchingBlock (block).Count > 0) {
-					_setRandomBlockColor (block);
+					block = _getRandomBlock ();
+					block.SetPos (col, row);
+					_blocks [col, row] = block;
 				}
+				_blocks [col, row] = _createBlock (block, _getBlockPos (col, row), col, row);
 			}
 		}
 	}

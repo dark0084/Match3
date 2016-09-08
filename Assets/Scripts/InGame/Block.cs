@@ -4,13 +4,13 @@ using System.Collections;
 public class Block : MonoBehaviour {
 
 	public enum Kind {
-		RED,
 		BLUE,
 		GREEN,
-		MAGENTA,
+		ORANGE,
+		PURPLE,
+		RED,
+		TEAL,
 		YELLOW,
-		BROWN,
-		AQUA,
 		MAX
 	}
 
@@ -21,7 +21,7 @@ public class Block : MonoBehaviour {
         FALL
     }
 
-	public Kind kind = Kind.RED;
+	public Kind kind = Kind.BLUE;
     public State state = State.NORMAL;
 
 	public int col = -1;
