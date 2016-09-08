@@ -393,9 +393,9 @@ public class Board : MonoBehaviour {
 			for (int i = 0; i < blankCount; ++i) {
 				int fallRow = blankCount - (i + 1);
 				Block block = _createBlock(_getRandomBlock(), _getBlockPos(col, -(i + 1)), col, fallRow);
-				_blocks[col, blankCount - (i + 1)] = block;
+				_blocks[col, fallRow] = block;
 
-				block.Fall(_getBlockPos(col, blankCount - (i + 1)));
+				block.Fall(_getBlockPos(col, fallRow));
 				_fallingBlocks.Add (block);
 			}
 		}
@@ -403,7 +403,7 @@ public class Board : MonoBehaviour {
 
 	private void _createBlocks() {
 		for (int col = 0; col < maxCol; ++col) {
-			for (int row = 0; row < maxRow; ++row) {
+			for (int row = maxRow - 1; row >= 0; --row) {
 				Block block = _getRandomBlock ();
 				block.SetPos (col, row);
 				_blocks [col, row] = block;
@@ -413,7 +413,16 @@ public class Board : MonoBehaviour {
 					block.SetPos (col, row);
 					_blocks [col, row] = block;
 				}
-				_blocks [col, row] = _createBlock (block, _getBlockPos (col, row), col, row);
+
+				block = _createBlock (block, _getBlockPos (col, -(maxRow - row)), col, row);
+				_blocks [col, row] = block;
+			}
+		}
+		for (int col = 0; col < maxCol; ++col) {
+			for (int row = maxRow - 1; row >= 0; --row) {
+				Block block = _blocks [col, row];
+				block.Fall(_getBlockPos(col, row));
+				_fallingBlocks.Add (block);
 			}
 		}
 	}
